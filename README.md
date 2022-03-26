@@ -1,2 +1,3 @@
-# Hoymiles-Plant-DTU-Pro
-Hoymiles-Plant-DTU-Pro via Modbus TCP
+# integration-hacs
+
+_Sample integration repository for [HACS](https://github.com/custom-components/hacs)._
