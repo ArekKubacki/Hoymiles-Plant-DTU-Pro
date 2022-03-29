@@ -39,7 +39,7 @@ After adding a custom repository you can use HACS to install this integration us
 
 ### Manual
 
-To install this integration manually you have to download [*hoymiles_dtu.zip*](https://github.com/ArekKubacki/Hoymiles-Plant-DTU-Pro/releases/latest/download/hoymiles_dtu.zip) and extract its contents to `config/custom_components/froggy` directory:
+To install this integration manually you have to download [*hoymiles_dtu.zip*](https://github.com/ArekKubacki/Hoymiles-Plant-DTU-Pro/releases/latest/download/hoymiles_dtu.zip) and extract its contents to `config/custom_components/hoymiles_dtu` directory:
 ```bash
 mkdir -p custom_components/hoymiles_dtu
 cd custom_components/hoymiles_dtu
