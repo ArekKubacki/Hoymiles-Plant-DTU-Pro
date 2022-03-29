@@ -8,21 +8,21 @@
 [hacs_shield]: https://img.shields.io/static/v1.svg?label=HACS&message=Custom&style=popout&color=orange&labelColor=41bdf5&logo=HomeAssistantCommunityStore&logoColor=white
 [hacs]: https://hacs.xyz/docs/faq/custom_repositories
 
-[latest_release]: https://github.com/Arek1990/Hoymiles-Plant-DTU-Pro/releases/latest
-[releases_shield]: https://img.shields.io/github/release/Arek1990/Hoymiles-Plant-DTU-Pro.svg?style=popout
+[latest_release]: https://github.com/ArekKubacki/Hoymiles-Plant-DTU-Pro/releases/latest
+[releases_shield]: https://img.shields.io/github/release/ArekKubacki/Hoymiles-Plant-DTU-Pro.svg?style=popout
 
-[releases]: https://github.com/Arek1990/Hoymiles-Plant-DTU-Pro/releases
-[downloads_total_shield]: https://img.shields.io/github/downloads/Arek1990/Hoymiles-Plant-DTU-Pro/total
+[releases]: https://github.com/ArekKubacki/Hoymiles-Plant-DTU-Pro/releases
+[downloads_total_shield]: https://img.shields.io/github/downloads/ArekKubacki/Hoymiles-Plant-DTU-Pro/total
 
 [buy_me_a_coffee_shield]: https://img.shields.io/static/v1.svg?label=%20&message=Buy%20me%20a%20coffee&color=6f4e37&logo=buy%20me%20a%20coffee&logoColor=white
-[buy_me_a_coffee]: https://www.buymeacoffee.com/PiotrMachowski
+[buy_me_a_coffee]: https://www.buymeacoffee.com/ArekKubacki
 
 [paypal_me_shield]: https://img.shields.io/static/v1.svg?label=%20&message=PayPal.Me&logo=paypal
-[paypal_me]: https://paypal.me/PiMachowski
+[paypal_me]: https://paypal.me/ArekKubacki
 
-# Froggy Sensor
+# Hoymiles Plant DTU-Pro Sensor
 
-This custom integration retrieves opening status of [Żabka shops](https://www.zabka.pl/).
+This integration retrieves data from Hoymiles DTU-Pro using Modbus TCP do Home Assistant
 
 
 ![example](https://github.com/PiotrMachowski/Home-Assistant-custom-components-Froggy/blob/master/example.png)
@@ -32,56 +32,469 @@ This custom integration retrieves opening status of [Żabka shops](https://www.z
 ### Using [HACS](https://hacs.xyz/) (recommended)
 
 This integration can be added to HACS as a [custom repository](https://hacs.xyz/docs/faq/custom_repositories):
-* URL: `https://github.com/PiotrMachowski/Home-Assistant-custom-components-Froggy`
+* URL: `https://github.com/ArekKubacki/Hoymiles-Plant-DTU-Pro`
 * Category: `Integration`
 
 After adding a custom repository you can use HACS to install this integration using user interface.
 
 ### Manual
 
-To install this integration manually you have to download [*froggy.zip*](https://github.com/PiotrMachowski/Home-Assistant-custom-components-Froggy/releases/latest/download/froggy.zip) and extract its contents to `config/custom_components/froggy` directory:
+To install this integration manually you have to download [*hoymiles_dtu.zip*](https://github.com/ArekKubacki/Hoymiles-Plant-DTU-Pro/releases/latest/download/hoymiles_dtu.zip) and extract its contents to `config/custom_components/froggy` directory:
 ```bash
-mkdir -p custom_components/froggy
-cd custom_components/froggy
-wget https://github.com/PiotrMachowski/Home-Assistant-custom-components-Froggy/releases/latest/download/froggy.zip
-unzip froggy.zip
-rm froggy.zip
+mkdir -p custom_components/hoymiles_dtu
+cd custom_components/hoymiles_dtu
+wget https://github.com/ArekKubacki/Hoymiles-Plant-DTU-Pro/releases/latest/download/hoymiles_dtu.zip
+unzip hoymiles_dtu.zip
+rm hoymiles_dtu.zip
 ```
 
-## Configuration
+## Configuration options
 
 | Key | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `name` | `string` | `False` | `Froggy` | Prefix for sensor ids |
-| `latitude` | `float` | `False` | Latitude of home | Latitude of point of reference |
-| `longitude` | `float` | `False` | Longitude of home | Longitude of of reference |
-| `shop_ids` | `list` | `False` | - | List of monitored shop ids ([retrieving id](#retrieving-shop-id)) |
+| `name` | `string` | `False` | `Hoymiles PV` | Name of sensor |
+| `host` | `string` | `True` | - | Local DTU-Pro host |
+| `monitored_conditions` | `list` | `True` | - | List of conditions to monitor |
+| `monitored_conditions_pv` | `list` | `True` | - | List of conditions for pv to monitor |
+| `panels` | `float` | `True` | - | Number of PV panels |
+| `scan_interval` | `time period` | `False` | `00:02:00` | Interval between sensor updates |
+
+### Possible monitored conditions
+
+| Key | Description |
+| --- | --- | 
+| `pv_power` | The current power of the photovoltaic power plant |
+| `today_production` | Production of a photovoltaic power plant today |
+| `total_production` | Total production of a photovoltaic power plant |
+
+### Possible PV monitored conditions
+
+| Key | Description |
+| --- | --- | 
+| `pv_power` | The current power of the photovoltaic panel |
+| `today_production` | Production of a photovoltaic panel today |
+| `total_production` | Total production of a photovoltaic panel plant |
 
 ### Example configuration
 
-#### Minimal version - retrieves data for the closest shop
-
 ```yaml
-binary_sensor:
-  - platform: froggy
+sensor:
+  - platform: hoymiles_dtu
+    host: 192.168.x.xxx
+    name: Hoymiles PV
+    monitored_conditions:
+      - 'pv_power'
+      - 'today_production'
+      - 'total_production'
+    monitored_conditions_pv:
+      - 'pv_power'
+      - 'today_production'
+      - 'total_production'
+    panels: 16
 ```
 
-#### Selected list of shops
-```yaml
-binary_sensor:
-  - platform: froggy
-    shop_ids:
-      - ID02786
-      - ID07971  
+### Dashboard example
+
+This example needs custom:bar-card form HACS
+
+```
+type: vertical-stack
+cards:
+  - type: horizontal-stack
+    cards:
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 6.4
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv_pv_power
+      - type: vertical-stack
+        cards:
+          - type: sensor
+            entity: sensor.hoymiles_pv_today_production
+            name: Today
+            hold_action: more-info
+          - type: sensor
+            entity: sensor.hoymiles_pv_total_production
+            name: Total
+            hold_action: more-info
+  - type: horizontal-stack
+    cards:
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_4_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_1_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_3_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_4_pv_power
+  - type: horizontal-stack
+    cards:
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_3_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_2_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_1_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_2_pv_power
+  - type: horizontal-stack
+    cards:
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_4_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_1_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_3_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_4_pv_power
+  - type: horizontal-stack
+    cards:
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_3_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_2_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_1_pv_power
+      - type: custom:bar-card
+        direction: up
+        rounding: 5px
+        height: 100
+        positions:
+          icon: 'off'
+          indicator: 'off'
+          name: none
+        style:
+          top: 0%
+          left: 0%
+          transform: none
+          overflow: hidden
+          border-radius: 8px
+          width: 100%
+          '--paper-card-background-color': rgba(84, 95, 108, 0.7)
+        min: 0
+        max: 400
+        saturation: 50%
+        stack: horizontal
+        entities:
+          - entity: sensor.hoymiles_pv__pv_2_pv_power
 ```
 
-### Retrieving shop id
-1. Go to [Lokalizator](https://www.zabka.pl/znajdz-sklep)
-1. Find the store
-1. Double-click on pin
-1. Shop id will be visible in URL address:
-   
-    `https://www.zabka.pl/znajdz-sklep/sklep/ID02786,ustrzyki-dolne-ul-rynek-25-u2`
 
-<a href="https://www.buymeacoffee.com/PiotrMachowski" target="_blank"><img src="https://bmc-cdn.nyc3.digitaloceanspaces.com/BMC-button-images/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
-<a href="https://paypal.me/PiMachowski" target="_blank"><img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" border="0" alt="PayPal Logo" style="height: auto !important;width: auto !important;"></a>
+<a href="https://www.buymeacoffee.com/ArekKubacki" target="_blank"><img src="https://bmc-cdn.nyc3.digitaloceanspaces.com/BMC-button-images/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
+<a href="https://paypal.me/ArekKubacki" target="_blank"><img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" border="0" alt="PayPal Logo" style="height: auto !important;width: auto !important;"></a>
