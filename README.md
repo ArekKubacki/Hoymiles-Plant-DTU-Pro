@@ -25,7 +25,7 @@
 This integration retrieves data from Hoymiles DTU-Pro using Modbus TCP do Home Assistant
 
 
-![example](https://github.com/PiotrMachowski/Home-Assistant-custom-components-Froggy/blob/master/example.png)
+![example](https://github.com/ArekKubacki/Hoymiles-Plant-DTU-Pro/images/pv.png)
 
 ## Installation
 
