@@ -24,13 +24,13 @@ DEFAULT_SCAN_INTERVAL = timedelta(minutes=2)
 
 # opis, jednostka, urzadzenie, klasa, reset, mnoznik
 SENSOR_TYPES = {
-    'pv_power': ['Aktualna moc', POWER_KILO_WATT, DEVICE_CLASS_ENERGY, STATE_CLASS_MEASUREMENT, False, 1000],
+    'pv_power': ['Aktualna moc', POWER_KILO_WATT, DEVICE_CLASS_POWER, STATE_CLASS_MEASUREMENT, False, 1000],
     'today_production': ['Energia dzisiaj', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, True, 1000],
     'total_production': ['Energia od początku', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, False, 1000]
 }
 
 PV_TYPES = {
-    'pv_power': [7, 'Aktualna moc', POWER_WATT, DEVICE_CLASS_ENERGY, STATE_CLASS_MEASUREMENT, False, 1],
+    'pv_power': [7, 'Aktualna moc', POWER_WATT, DEVICE_CLASS_POWER, STATE_CLASS_MEASUREMENT, False, 1],
     'today_production': [8, 'Energia dzisiaj', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, True, 1000],
     'total_production': [9, 'Energia od początku', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, False, 1000]
 }
