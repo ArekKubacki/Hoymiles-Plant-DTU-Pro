@@ -4,9 +4,9 @@ import logging
 import voluptuous as vol
 
 from homeassistant.util import Throttle
-from homeassistant.components.sensor import PLATFORM_SCHEMA, STATE_CLASS_MEASUREMENT, STATE_CLASS_TOTAL_INCREASING, SensorEntity
+from homeassistant.components.sensor import PLATFORM_SCHEMA, STATE_CLASS_MEASUREMENT, STATE_CLASS_TOTAL, STATE_CLASS_TOTAL_INCREASING, SensorEntity
 from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_MONITORED_CONDITIONS, CONF_SCAN_INTERVAL)
-from homeassistant.const import POWER_KILO_WATT, POWER_WATT, ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_POWER, DEVICE_CLASS_ENERGY
+from homeassistant.const import POWER_KILO_WATT, POWER_WATT, ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_POWER, DEVICE_CLASS_ENERGY, ELECTRIC_CURRENT_AMPERE, ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, DEVICE_CLASS_CURRENT
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
 
@@ -17,22 +17,24 @@ CONF_MONITORED_CONDITIONS_PV = "monitored_conditions_pv"
 CONF_MICROINVERTERS = "microinverters"
 CONF_PANELS = "panels"
 
-#DEPENDENCIES = ['hoymiles_dtu']
 _LOGGER = logging.getLogger(__name__)
 DEFAULT_NAME = 'Hoymiles DTU'
 DEFAULT_SCAN_INTERVAL = timedelta(minutes=2)
 
-# opis, jednostka, urzadzenie, klasa, reset, mnoznik
+# opis, jednostka, urzadzenie, klasa, reset, mnoznik, utrzymanie wartosci (0-brak, 1-tak, 2-do polnocy)
 SENSOR_TYPES = {
-    'pv_power': ['Aktualna moc', POWER_KILO_WATT, DEVICE_CLASS_ENERGY, STATE_CLASS_MEASUREMENT, False, 1000],
-    'today_production': ['Energia dzisiaj', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, True, 1000],
-    'total_production': ['Energia od początku', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, False, 1000]
+    'pv_power': ['Aktualna moc', POWER_KILO_WATT, DEVICE_CLASS_POWER, STATE_CLASS_MEASUREMENT, False, 1000, 0],
+    'today_production': ['Energia dzisiaj', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, False, 1000, 2],
+    'total_production': ['Energia od początku', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL, False, 1000, 1]
 }
 
 PV_TYPES = {
-    'pv_power': [7, 'Aktualna moc', POWER_WATT, DEVICE_CLASS_ENERGY, STATE_CLASS_MEASUREMENT, False, 1],
-    'today_production': [8, 'Energia dzisiaj', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, True, 1000],
-    'total_production': [9, 'Energia od początku', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, False, 1000]
+    'pv_voltage': [3, 'Napięcie', ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, STATE_CLASS_MEASUREMENT, False, 1, 0],
+    'pv_current': [4, 'Prąd', ELECTRIC_CURRENT_AMPERE, DEVICE_CLASS_CURRENT, STATE_CLASS_MEASUREMENT, False, 1, 0],
+    'grid_voltage': [5, 'Napięcie sieci', ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, STATE_CLASS_MEASUREMENT, False, 1, 0],
+    'pv_power': [7, 'Aktualna moc', POWER_WATT, DEVICE_CLASS_POWER, STATE_CLASS_MEASUREMENT, False, 1, 0],
+    'today_production': [8, 'Energia dzisiaj', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, False, 1000, 2],
+    'total_production': [9, 'Energia od początku', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL, False, 1000, 1]
 }
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -40,7 +42,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_MONITORED_CONDITIONS, default=[]):
         vol.All(cv.ensure_list, [vol.In(SENSOR_TYPES)]),
     vol.Optional(CONF_MONITORED_CONDITIONS_PV, default=[]):
-        vol.All(cv.ensure_list, [vol.In(SENSOR_TYPES)]),
+        vol.All(cv.ensure_list, [vol.In(PV_TYPES)]),
     vol.Optional(CONF_PANELS, default=0): cv.byte,    
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): cv.time_period
@@ -80,9 +82,14 @@ class HoymilesDTUSensor(SensorEntity):
 
     @property
     def state(self):
-        if self._updater.data is not None:
+        if self._updater.data is not None and self._updater.data.total_production>0:
             temp = vars(self._updater.data)
             self._state = temp[self._type]/SENSOR_TYPES[self._type][5]
+        elif self._updater.data is not None and self._updater.data.total_production==0:
+            if SENSOR_TYPES[self._type][6]==0:
+                self._state = 0
+            elif SENSOR_TYPES[self._type][6]==2 and datetime.now().hour==0:
+                self._state = 0
         return self._state
 
     @property
@@ -97,9 +104,7 @@ class HoymilesDTUSensor(SensorEntity):
     def last_reset(self):
         if SENSOR_TYPES[self._type][4]:
             return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        if not SENSOR_TYPES[self._type][4]:
-            return datetime.now().replace(year = 1970, month = 1, day = 1, hour=0, minute=0, second=0, microsecond=0)
-
+			
     @property
     def unit_of_measurement(self):
         return self._unit_of_measurement
@@ -125,11 +130,14 @@ class HoymilesPVSensor(SensorEntity):
 
     @property
     def state(self):
-        if self._updater.data is not None:
+        if self._updater.data is not None and self._updater.data.total_production>0:
             temp = self._updater.data.microinverter_data[self._panel_number-1]
-            #if self._updater.data.microinverter_data[
             self._state = temp[PV_TYPES[self._type][0]]/PV_TYPES[self._type][6]
-        #if self._updater.data.microinverter_data[self._panel_number-1].link_status==1:
+        elif self._updater.data is not None and self._updater.data.total_production==0:
+            if PV_TYPES[self._type][7]==0:
+                self._state = 0
+            elif SENSOR_TYPES[self._type][7]==2 and datetime.now().hour==0:
+                self._state = 0
         return self._state
 
     @property
@@ -144,8 +152,6 @@ class HoymilesPVSensor(SensorEntity):
     def last_reset(self):
         if PV_TYPES[self._type][5]:
             return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        if not PV_TYPES[self._type][5]:
-            return datetime.now().replace(year = 1970, month = 1, day = 1, hour=0, minute=0, second=0, microsecond=0)
 
     @property
     def unit_of_measurement(self):
@@ -166,4 +172,3 @@ class HoymilesDTUUpdater:
           self.data = plant_data
         except:
           self.data = None
-
