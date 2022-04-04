@@ -77,6 +77,7 @@ rm hoymiles_dtu.zip
 | `pv_voltage` | The current voltage of the photovoltaic panel |
 | `pv_current` | The current current of the photovoltaic panel |
 | `grid_voltage` | The current voltage of the electricity grid |
+| `temperature` | The temperature of a photovoltaic panel plant |
 
 ### Example configuration
 
@@ -96,6 +97,7 @@ sensor:
       - 'pv_voltage'
       - 'pv_current'
       - 'grid_voltage'
+      - 'temperature'
     panels: 16
 ```
 
