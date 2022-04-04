@@ -74,6 +74,9 @@ rm hoymiles_dtu.zip
 | `pv_power` | The current power of the photovoltaic panel |
 | `today_production` | Production of a photovoltaic panel today |
 | `total_production` | Total production of a photovoltaic panel plant |
+| `pv_voltage` | The current voltage of the photovoltaic panel |
+| `pv_current` | The current current of the photovoltaic panel |
+| `grid_voltage` | The current voltage of the electricity grid |
 
 ### Example configuration
 
@@ -90,6 +93,9 @@ sensor:
       - 'pv_power'
       - 'today_production'
       - 'total_production'
+      - 'pv_voltage'
+      - 'pv_current'
+      - 'grid_voltage'
     panels: 16
 ```
 
