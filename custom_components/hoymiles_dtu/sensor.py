@@ -136,7 +136,7 @@ class HoymilesPVSensor(SensorEntity):
         elif self._updater.data is not None and self._updater.data.total_production==0:
             if PV_TYPES[self._type][7]==0:
                 self._state = 0
-            elif SENSOR_TYPES[self._type][7]==2 and datetime.now().hour==0:
+            elif PV_TYPES[self._type][7]==2 and datetime.now().hour==0:
                 self._state = 0
         return self._state
 
