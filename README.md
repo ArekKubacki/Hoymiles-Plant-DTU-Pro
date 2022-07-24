@@ -95,6 +95,7 @@ sensor:
       - 'pv_power'
       - 'today_production'
       - 'total_production'
+      - 'alarm_flag'
     monitored_conditions_pv:
       - 'pv_power'
       - 'today_production'
@@ -103,6 +104,10 @@ sensor:
       - 'pv_current'
       - 'grid_voltage'
       - 'temperature'
+      - 'operating_status'
+      - 'alarm_code'
+      - 'alarm_count'
+      - 'link_status'
     panels: 16
 ```
 
