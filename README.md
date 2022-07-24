@@ -66,6 +66,7 @@ rm hoymiles_dtu.zip
 | `pv_power` | The current power of the photovoltaic power plant |
 | `today_production` | Production of a photovoltaic power plant today |
 | `total_production` | Total production of a photovoltaic power plant |
+| `alarm_flag` | Alarm flag of a photovoltaic power plant |
 
 ### Possible PV monitored conditions
 
@@ -78,6 +79,10 @@ rm hoymiles_dtu.zip
 | `pv_current` | The current current of the photovoltaic panel |
 | `grid_voltage` | The current voltage of the electricity grid |
 | `temperature` | The temperature of a photovoltaic panel plant |
+| `operating_status` | The operating status of a photovoltaic panel plant |
+| `alarm_code` | The alarm code of a photovoltaic panel plant |
+| `alarm_count` | The alarm count of a photovoltaic panel plant |
+| `link_status` | The link status of a photovoltaic panel plant |
 
 ### Example configuration
 
