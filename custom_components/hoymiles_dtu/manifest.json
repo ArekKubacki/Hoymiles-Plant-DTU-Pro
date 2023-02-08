@@ -2,9 +2,9 @@
   "domain": "hoymiles_dtu",
   "name": "Hoymiles Plant DTU-Pro",
   "documentation": "https://github.com/ArekKubacki/Hoymiles-Plant-DTU-Pro",
-  "requirements": ["hoymiles_modbus"],
+  "requirements": ["hoymiles_modbus>=0.6.0"],
   "dependencies": [],
   "codeowners": [],
-  "version": "0.3.0",
+  "version": "0.4.0",
   "iot_class": "local_polling"
 }
