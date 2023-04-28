@@ -54,6 +54,7 @@ rm hoymiles_dtu.zip
 | --- | --- | --- | --- | --- |
 | `name` | `string` | `False` | `Hoymiles PV` | Name of sensor |
 | `host` | `string` | `True` | - | Local DTU-Pro host |
+| `dtu_type` | `int` | `False` | 0 | 0 - Hoymiles DTU, 1 - OpenDTU |
 | `monitored_conditions` | `list` | `True` | - | List of conditions to monitor |
 | `monitored_conditions_pv` | `list` | `True` | - | List of conditions for pv to monitor |
 | `panels` | `float` | `True` | - | Number of PV panels |
@@ -78,6 +79,7 @@ rm hoymiles_dtu.zip
 | `pv_voltage` | The current voltage of the photovoltaic panel |
 | `pv_current` | The current current of the photovoltaic panel |
 | `grid_voltage` | The current voltage of the electricity grid |
+| `grid_frequency` | The current frequency of the electricity grid |
 | `temperature` | The temperature of a photovoltaic panel plant |
 | `operating_status` | The operating status of a photovoltaic panel plant |
 | `alarm_code` | The alarm code of a photovoltaic panel plant |
@@ -91,6 +93,7 @@ sensor:
   - platform: hoymiles_dtu
     host: 192.168.x.xxx
     name: Hoymiles PV
+    dtu_type: 0
     monitored_conditions:
       - 'pv_power'
       - 'today_production'

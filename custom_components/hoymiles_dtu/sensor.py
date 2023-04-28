@@ -6,12 +6,12 @@ import voluptuous as vol
 from homeassistant.util import Throttle
 from homeassistant.components.sensor import PLATFORM_SCHEMA, STATE_CLASS_MEASUREMENT, STATE_CLASS_TOTAL, STATE_CLASS_TOTAL_INCREASING, SensorEntity
 from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_MONITORED_CONDITIONS, CONF_SCAN_INTERVAL)
-from homeassistant.const import POWER_KILO_WATT, POWER_WATT, ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_POWER, DEVICE_CLASS_ENERGY, ELECTRIC_CURRENT_AMPERE, ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, DEVICE_CLASS_CURRENT, TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE
+from homeassistant.const import POWER_KILO_WATT, POWER_WATT, ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_POWER, DEVICE_CLASS_ENERGY, ELECTRIC_CURRENT_AMPERE, ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, DEVICE_CLASS_CURRENT, TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE, FREQUENCY_HERTZ
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
 
-from hoymiles_modbus.client import HoymilesModbusTCP
-from hoymiles_modbus.datatypes import MicroinverterType
+from .hoymiles.client import HoymilesModbusTCP
+from .hoymiles.datatypes import MicroinverterType
 
 from pymodbus.constants import Defaults
 Defaults.RetryOnEmpty = True
@@ -22,6 +22,7 @@ Defaults.Retries = 5
 CONF_MONITORED_CONDITIONS_PV = "monitored_conditions_pv"
 CONF_MICROINVERTERS = "microinverters"
 CONF_PANELS = "panels"
+CONF_DTU_TYPE = "dtu_type"
 
 _LOGGER = logging.getLogger(__name__)
 DEFAULT_NAME = 'Hoymiles DTU'
@@ -29,24 +30,25 @@ DEFAULT_SCAN_INTERVAL = timedelta(minutes=2)
 
 # opis, jednostka, urzadzenie, klasa, reset, mnoznik, utrzymanie wartosci (0-brak, 1-tak, 2-do polnocy)
 SENSOR_TYPES = {
-    'pv_power': ['Aktualna moc', POWER_KILO_WATT, DEVICE_CLASS_POWER, STATE_CLASS_MEASUREMENT, False, 1000, 0],
+    'pv_power': ['Aktualna moc', POWER_KILO_WATT, DEVICE_CLASS_POWER, None, False, 1000, 0],
     'today_production': ['Energia dzisiaj', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, False, 1000, 2],
     'total_production': ['Energia od początku', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL, False, 1000, 1],
-    'alarm_flag': ['Flaga alarmu', ' ', 'alarm_flag', STATE_CLASS_MEASUREMENT, False, 1, 0]
+    'alarm_flag': ['Flaga alarmu', ' ', 'alarm_flag', None, False, 1, 0]
 }
 
 PV_TYPES = {
-    'pv_voltage': [3, 'Napięcie', ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, STATE_CLASS_MEASUREMENT, False, 1, 0],
-    'pv_current': [4, 'Prąd', ELECTRIC_CURRENT_AMPERE, DEVICE_CLASS_CURRENT, STATE_CLASS_MEASUREMENT, False, 1, 0],
-    'grid_voltage': [5, 'Napięcie sieci', ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, STATE_CLASS_MEASUREMENT, False, 1, 0],
-    'pv_power': [7, 'Aktualna moc', POWER_WATT, DEVICE_CLASS_POWER, STATE_CLASS_MEASUREMENT, False, 1, 0],
+    'pv_voltage': [3, 'Napięcie', ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, None, False, 1, 0],
+    'pv_current': [4, 'Prąd', ELECTRIC_CURRENT_AMPERE, DEVICE_CLASS_CURRENT, None, False, 1, 0],
+    'grid_voltage': [5, 'Napięcie sieci', ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, None, False, 1, 0],
+    'grid_frequency': [6, 'Częstotliwość sieci', FREQUENCY_HERTZ, None, None, False, 1, 0],
+    'pv_power': [7, 'Aktualna moc', POWER_WATT, DEVICE_CLASS_POWER, None, False, 1, 0],
     'today_production': [8, 'Energia dzisiaj', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, False, 1000, 2],
     'total_production': [9, 'Energia od początku', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL, False, 1000, 1],
-    'temperature': [10, 'Temperatura', TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE, STATE_CLASS_MEASUREMENT, False, 1, 0],
-    'operating_status': [11, 'Status', ' ', 'operating_status', STATE_CLASS_MEASUREMENT, False, 1, 0],
-    'alarm_code': [12, 'Kod alarmu', ' ', 'alarm_code', STATE_CLASS_MEASUREMENT, False, 1, 0],
-    'alarm_count': [13, 'Wystąpienia alarmu', ' ', 'alarm_count', STATE_CLASS_MEASUREMENT, False, 1, 0],
-    'link_status': [14, 'Status połączenia', ' ', 'link_status', STATE_CLASS_MEASUREMENT, False, 1, 0]
+    'temperature': [10, 'Temperatura', TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE, None, False, 1, 0],
+    'operating_status': [11, 'Status', ' ', 'operating_status', None, False, 1, 0],
+    'alarm_code': [12, 'Kod alarmu', ' ', 'alarm_code', None, False, 1, 0],
+    'alarm_count': [13, 'Wystąpienia alarmu', ' ', 'alarm_count', None, False, 1, 0],
+    'link_status': [14, 'Status połączenia', ' ', 'link_status', None, False, 1, 0]
 }
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -55,7 +57,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
         vol.All(cv.ensure_list, [vol.In(SENSOR_TYPES)]),
     vol.Optional(CONF_MONITORED_CONDITIONS_PV, default=[]):
         vol.All(cv.ensure_list, [vol.In(PV_TYPES)]),
-    vol.Optional(CONF_PANELS, default=0): cv.byte,    
+    vol.Optional(CONF_PANELS, default=0): cv.byte,
+    vol.Optional(CONF_DTU_TYPE, default=0): cv.byte,    
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): cv.time_period
 })
@@ -64,8 +67,9 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     name = config.get(CONF_NAME)
     host = config.get(CONF_HOST)
     panels = config.get(CONF_PANELS)
+    dtu_type = config.get(CONF_DTU_TYPE)
     scan_interval = config.get(CONF_SCAN_INTERVAL)
-    updater = HoymilesDTUUpdater(host, scan_interval)
+    updater = HoymilesDTUUpdater(host, scan_interval, dtu_type)
     updater.update()
     if updater.data is None:
         raise Exception('Invalid configuration for Hoymiles DTU platform')
@@ -126,9 +130,16 @@ class HoymilesDTUSensor(SensorEntity):
         if self._state is not None and self._state < self._state_old and self._type=='total_production':
             self._state = self._state_old
         elif self._state is not None and self._state > self._state_old and self._type=='total_production':
-            self._state_old = self._state
+            if self._state > self._state_old + 1 and self._state_old > 0:
+                self._state = self._state_old
+            else:
+                self._state_old = self._state
         return self._state
-        
+
+    @property
+    def unique_id(self):
+        """Return a unique ID."""
+        return f"dtu-{self._client_name.lower()}-{self._type.lower()}"  
 
     @property
     def device_class(self):
@@ -161,6 +172,9 @@ class HoymilesPVSensor(SensorEntity):
         self._name = PV_TYPES[sensor_type][1]
         self._state = None
         self._unit_of_measurement = PV_TYPES[sensor_type][2]
+        self._unique_id_name = name
+
+
 
     @property
     def name(self):
@@ -178,6 +192,11 @@ class HoymilesPVSensor(SensorEntity):
                 self._state = 0
         return self._state
 
+    @property
+    def unique_id(self):
+        """Return a unique ID."""
+        return f"dtu-pv-{self._unique_id_name}-{self._serial_number}-{str(self._panel)}-{self._type.lower()}"  
+        
     @property
     def device_class(self):
         return PV_TYPES[self._type][3]
@@ -199,14 +218,14 @@ class HoymilesPVSensor(SensorEntity):
         self._updater.update()
 
 class HoymilesDTUUpdater:
-    def __init__(self, host, scan_interval):
+    def __init__(self, host, scan_interval, dtu_type):
         self.host = host
         self.update = Throttle(scan_interval)(self._update)
         self.data = None
-
+        self.dtu_type = dtu_type
     def _update(self):
         try:
-          plant_data = HoymilesModbusTCP(self.host, microinverter_type=MicroinverterType.HM).plant_data
+          plant_data = HoymilesModbusTCP(self.host, microinverter_type=MicroinverterType.HM, dtu_type=self.dtu_type).plant_data
           self.data = plant_data
         except:
           self.data = None
