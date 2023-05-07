@@ -2,7 +2,7 @@
   "domain": "hoymiles_dtu",
   "name": "Hoymiles Plant DTU-Pro",
   "documentation": "https://github.com/ArekKubacki/Hoymiles-Plant-DTU-Pro",
-  "requirements": ["hoymiles_modbus>=0.6.0"],
+  "requirements": ["hoymiles_modbus>=0.6.0","plum-py>=0.8.6"],
   "dependencies": [],
   "codeowners": [],
   "version": "0.5.0",
