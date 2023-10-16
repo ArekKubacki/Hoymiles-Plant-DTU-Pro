@@ -66,7 +66,7 @@ rm hoymiles_dtu.zip
 | --- | --- | 
 | `pv_power` | The current power of the photovoltaic power plant |
 | `today_production` | Production of a photovoltaic power plant today |
-| `total_production` | Total production of a photovoltaic power plant |
+| `total_production` | Total production of a photovoltaic power plant - use for Energy Dashboard |
 | `alarm_flag` | Alarm flag of a photovoltaic power plant |
 
 ### Possible PV monitored conditions
