@@ -22,7 +22,8 @@
 
 # Hoymiles Plant DTU-Pro Sensor
 
-This integration retrieves data from Hoymiles DTU-Pro using Modbus TCP do Home Assistant
+This integration retrieves data from Hoymiles DTU-Pro using Modbus TCP do Home Assistant. The DTU must be connected via an Ethernet cable. For 22 Version, if you choose "Export control", it prohibits MODBUS TCP. But "Remote control" still supports it.
+So you have to go to "Toolkit" in APP and then choose "Remote Control" from RS-485 Port Config under DTU Information.
 
 
 ![example](https://github.com/ArekKubacki/Hoymiles-Plant-DTU-Pro/blob/main/images/pv.png)
