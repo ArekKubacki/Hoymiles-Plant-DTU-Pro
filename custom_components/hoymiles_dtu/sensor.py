@@ -4,20 +4,14 @@ import logging
 import voluptuous as vol
 
 from homeassistant.util import Throttle
-from homeassistant.components.sensor import PLATFORM_SCHEMA, STATE_CLASS_MEASUREMENT, STATE_CLASS_TOTAL, STATE_CLASS_TOTAL_INCREASING, SensorEntity
+from homeassistant.components.sensor import PLATFORM_SCHEMA, SensorEntity, SensorDeviceClass, SensorStateClass
+from homeassistant.const import UnitOfElectricCurrent, UnitOfEnergy, UnitOfPower, UnitOfElectricPotential, UnitOfTemperature, UnitOfFrequency
 from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_MONITORED_CONDITIONS, CONF_SCAN_INTERVAL)
-from homeassistant.const import POWER_KILO_WATT, POWER_WATT, ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_POWER, DEVICE_CLASS_ENERGY, ELECTRIC_CURRENT_AMPERE, ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, DEVICE_CLASS_CURRENT, TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE, FREQUENCY_HERTZ
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
 
 from .hoymiles.client import HoymilesModbusTCP
 from .hoymiles.datatypes import MicroinverterType
-
-from pymodbus.constants import Defaults
-Defaults.RetryOnEmpty = True
-Defaults.Timeout = 5
-Defaults.Retries = 5
-
 
 CONF_MONITORED_CONDITIONS_PV = "monitored_conditions_pv"
 CONF_MICROINVERTERS = "microinverters"
@@ -30,21 +24,21 @@ DEFAULT_SCAN_INTERVAL = timedelta(minutes=2)
 
 # opis, jednostka, urzadzenie, klasa, reset, mnoznik, utrzymanie wartosci (0-brak, 1-tak, 2-do polnocy)
 SENSOR_TYPES = {
-    'pv_power': ['Aktualna moc', POWER_KILO_WATT, DEVICE_CLASS_POWER, None, False, 1000, 0],
-    'today_production': ['Energia dzisiaj', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, False, 1000, 2],
-    'total_production': ['Energia od początku', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL, False, 1000, 1],
+    'pv_power': ['Aktualna moc', UnitOfPower.KILO_WATT, SensorDeviceClass.POWER, None, False, 1000, 0],
+    'today_production': ['Energia dzisiaj', UnitOfEnergy.KILO_WATT_HOUR, SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, False, 1000, 2],
+    'total_production': ['Energia od początku', UnitOfEnergy.KILO_WATT_HOUR, SensorDeviceClass.ENERGY, SensorStateClass.TOTAL, False, 1000, 1],
     'alarm_flag': ['Flaga alarmu', ' ', 'alarm_flag', None, False, 1, 0]
 }
 
 PV_TYPES = {
-    'pv_voltage': [3, 'Napięcie', ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, None, False, 1, 0],
-    'pv_current': [4, 'Prąd', ELECTRIC_CURRENT_AMPERE, DEVICE_CLASS_CURRENT, None, False, 1, 0],
-    'grid_voltage': [5, 'Napięcie sieci', ELECTRIC_POTENTIAL_VOLT, DEVICE_CLASS_VOLTAGE, None, False, 1, 0],
-    'grid_frequency': [6, 'Częstotliwość sieci', FREQUENCY_HERTZ, None, None, False, 1, 0],
-    'pv_power': [7, 'Aktualna moc', POWER_WATT, DEVICE_CLASS_POWER, None, False, 1, 0],
-    'today_production': [8, 'Energia dzisiaj', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL_INCREASING, False, 1000, 2],
-    'total_production': [9, 'Energia od początku', ENERGY_KILO_WATT_HOUR, DEVICE_CLASS_ENERGY, STATE_CLASS_TOTAL, False, 1000, 1],
-    'temperature': [10, 'Temperatura', TEMP_CELSIUS, DEVICE_CLASS_TEMPERATURE, None, False, 1, 0],
+    'pv_voltage': [3, 'Napięcie', UnitOfElectricPotential.VOLT, SensorDeviceClass.VOLTAGE, None, False, 1, 0],
+    'pv_current': [4, 'Prąd', UnitOfElectricCurrent.AMPERE, SensorDeviceClass.CURRENT, None, False, 1, 0],
+    'grid_voltage': [5, 'Napięcie sieci', UnitOfElectricPotential.VOLT, SensorDeviceClass.VOLTAGE, None, False, 1, 0],
+    'grid_frequency': [6, 'Częstotliwość sieci', UnitOfFrequency.HERTZ, None, None, False, 1, 0],
+    'pv_power': [7, 'Aktualna moc', UnitOfPower.WATT, SensorDeviceClass.POWER, None, False, 1, 0],
+    'today_production': [8, 'Energia dzisiaj', UnitOfEnergy.KILO_WATT_HOUR, SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, False, 1000, 2],
+    'total_production': [9, 'Energia od początku', UnitOfEnergy.KILO_WATT_HOUR, SensorDeviceClass.ENERGY, SensorStateClass.TOTAL, False, 1000, 1],
+    'temperature': [10, 'Temperatura', UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, None, False, 1, 0],
     'operating_status': [11, 'Status', ' ', 'operating_status', None, False, 1, 0],
     'alarm_code': [12, 'Kod alarmu', ' ', 'alarm_code', None, False, 1, 0],
     'alarm_count': [13, 'Wystąpienia alarmu', ' ', 'alarm_count', None, False, 1, 0],
@@ -130,10 +124,11 @@ class HoymilesDTUSensor(SensorEntity):
         if self._state is not None and self._state < self._state_old and self._type=='total_production':
             self._state = self._state_old
         elif self._state is not None and self._state > self._state_old and self._type=='total_production':
-            if self._state > self._state_old + 1 and self._state_old > 0:
+            if self._state > self._state_old + self._panels*0.5 and self._state_old > 0:
                 self._state = self._state_old
             else:
                 self._state_old = self._state
+
         return self._state
 
     @property

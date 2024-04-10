@@ -19,11 +19,11 @@ from .datatypes import (
 class CommunicationParams:
     """Low level pymodbus communication parameters."""
 
-    timeout: int = 3
+    timeout: int = 5
     """Request timeout."""
-    retries: int = 3
+    retries: int = 5
     """Max number of retries per request."""
-    retry_on_empty: bool = False
+    retry_on_empty: bool = True
     """Retry if received an empty response."""
     close_comm_on_error: bool = False
     """Close connection on error"""
