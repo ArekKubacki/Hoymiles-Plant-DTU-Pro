@@ -11,7 +11,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
 
 from .hoymiles.client import HoymilesModbusTCP
-from .hoymiles.datatypes import MicroinverterType
+#from .hoymiles.datatypes import MicroinverterType
 
 CONF_MONITORED_CONDITIONS_PV = "monitored_conditions_pv"
 CONF_MICROINVERTERS = "microinverters"
@@ -73,7 +73,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     for variable in config[CONF_MONITORED_CONDITIONS_PV]:
         i = 1
         while i<=panels:
-          dev.append(HoymilesPVSensor(name, updater.data.microinverter_data[i-1].serial_number, i, updater.data.microinverter_data[i-1].port_number, variable, updater))
+          dev.append(HoymilesPVSensor(name, updater.data.inverters[i-1].serial_number, i, updater.data.inverters[i-1].port_number, variable, updater))
           i+=1
     add_entities(dev, True)
 
@@ -107,7 +107,7 @@ class HoymilesDTUSensor(SensorEntity):
                 i = 1
                 licz_total = 0
                 while i<=self._panels:
-                    temp2 = self._updater.data.microinverter_data[i-1]
+                    temp2 = self._updater.data.inverters[i-1]
                     licz_total = licz_total + temp2[PV_TYPES[self._type][0]]/PV_TYPES[self._type][6]
                     i+=1
                 if licz_total>0:
@@ -116,7 +116,7 @@ class HoymilesDTUSensor(SensorEntity):
                 i = 1
                 licz_total = 0
                 while i<=self._panels:
-                    temp2 = self._updater.data.microinverter_data[i-1]
+                    temp2 = self._updater.data.inverters[i-1]
                     licz_total = licz_total + temp2[PV_TYPES[self._type][0]]/PV_TYPES[self._type][6]
                     i+=1
                 if licz_total>0:
@@ -178,7 +178,7 @@ class HoymilesPVSensor(SensorEntity):
     @property
     def state(self):
         if self._updater.data is not None and self._updater.data.total_production>0:
-            temp = self._updater.data.microinverter_data[self._panel_number-1]
+            temp = self._updater.data.inverters[self._panel_number-1]
             self._state = temp[PV_TYPES[self._type][0]]/PV_TYPES[self._type][6]
         elif self._updater.data is not None and self._updater.data.total_production==0:
             if PV_TYPES[self._type][7]==0:
@@ -220,7 +220,7 @@ class HoymilesDTUUpdater:
         self.dtu_type = dtu_type
     def _update(self):
         try:
-          plant_data = HoymilesModbusTCP(self.host, microinverter_type=MicroinverterType.HM, dtu_type=self.dtu_type).plant_data
+          plant_data = HoymilesModbusTCP(self.host, dtu_type=self.dtu_type).plant_data
           self.data = plant_data
         except:
           self.data = None
