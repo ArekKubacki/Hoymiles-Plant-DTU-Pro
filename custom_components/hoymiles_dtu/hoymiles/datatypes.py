@@ -75,7 +75,7 @@ def _pv_current_type(serial: str) -> DecimalX:
         # in this case type of current value is not important
         current_type = _PVCurrentType.MI.value
     else:
-        raise ValueError(f"Couldn't detect inverter type for serial {serial}. Please report an issue.")
+        current_type = _PVCurrentType.HM.value
     return current_type
 
 def _pv_current_typeDTU(serial: str) -> DecimalX:
@@ -88,7 +88,7 @@ def _pv_current_typeDTU(serial: str) -> DecimalX:
         # in this case type of current value is not important
         current_type = _PVCurrentType.MIDTU.value
     else:
-        raise ValueError(f"Couldn't detect inverter type for serial {serial}. Please report an issue.")
+        current_type = _PVCurrentType.HMDTU.value
     return current_type
 
 class InverterData(Structure):  # type: ignore[misc]
