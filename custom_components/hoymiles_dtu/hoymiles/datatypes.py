@@ -48,18 +48,18 @@ _sdec32p1 = DecimalX(name='sdec32p1', nbytes=4, precision=1, byteorder='big', si
 _udec32p2 = DecimalX(name='udec32p2', nbytes=4, precision=2, byteorder='big', signed=False)
 
 _serial_number_t = _SerialNumberX(name='serial_number_t', nbytes=6)
-_serial_number_t2 = _SerialNumberX(name='serial_number_t', nbytes=3)
+_serial_number_t2 = _SerialNumberX(name='serial_number_t2', nbytes=12)
 _reserved = ArrayX(name='reserved', fmt=uint8)
 _reserved2 = ArrayX(name='reserved', fmt=uint16)
 
 class _PVCurrentType(Enum):
     """PV current datatype depending on inverter type."""
 
-    MI = _udec16p1
+    MI = _udec16p2
     """MI series."""
     HM = _udec16p2
     """HM series."""
-    MIDTU = _udec32p1
+    MIDTU = _udec32p2
     """MI series."""
     HMDTU = _udec32p2
     """HM series."""
@@ -78,15 +78,15 @@ def _pv_current_type(serial: str) -> DecimalX:
         raise ValueError(f"Couldn't detect inverter type for serial {serial}. Please report an issue.")
     return current_type
 
-def _pv_current_type(serial: str) -> DecimalX:
+def _pv_current_typeDTU(serial: str) -> DecimalX:
     if serial.startswith('10'):
         current_type = _PVCurrentType.MIDTU.value
     elif serial.startswith('11'):
-        current_type = _PVCurrentType.HM.value
+        current_type = _PVCurrentType.HMDTU.value
     elif serial == '000000000000':
         # all zero serial number means empty inverter data
         # in this case type of current value is not important
-        current_type = _PVCurrentType.MI.value
+        current_type = _PVCurrentType.MIDTU.value
     else:
         raise ValueError(f"Couldn't detect inverter type for serial {serial}. Please report an issue.")
     return current_type
@@ -129,14 +129,14 @@ class InverterDataOpenDTU(Structure):  # type: ignore[misc]
     """Inverter data structure."""
 
     data_type: int = member(fmt=uint16)
-    serial_number: str = member(fmt=_serial_number_t)
-    serial_number2: str = member(fmt=_serial_number_t)
+    serial_number: str = member(fmt=_serial_number_t2)
+    """serial_number2: str = member(fmt=_serial_number_t2)"""
     """Inverter serial number."""
     port_number: int = member(fmt=uint16)
     """Port number."""
     pv_voltage: Decimal = member(fmt=_udec32p1)
     """PV voltage [V]."""
-    pv_current: Decimal = member(fmt=_pv_current_type, fmt_arg=serial_number)  # type: ignore[arg-type]
+    pv_current: Decimal = member(fmt=_pv_current_typeDTU, fmt_arg=serial_number)  # type: ignore[arg-type]
     """PV current [A]."""
     grid_voltage: Decimal = member(fmt=_udec32p1)
     """Grid voltage [V]."""
@@ -160,7 +160,7 @@ class InverterDataOpenDTU(Structure):  # type: ignore[misc]
     """Alarm count."""
     link_status: int = member(fmt=uint16)
     """Link status."""
-    reserved: list[int] = member(fmt=_reserved)
+    reserved2: list[int] = member(fmt=_reserved)
 @dataclass
 class PlantData:
     """Data structure for the whole plant."""
@@ -183,9 +183,9 @@ class PlantData:
 class CommunicationParams:
     """Low level pymodbus communication parameters."""
 
-    timeout: float = 3
+    timeout: float = 5
     """Timeout for a connection request, in seconds."""
-    retries: int = 3
+    retries: int = 5
     """Max number of retries per request."""
     reconnect_delay: float = 0
     """Minimum delay in seconds.milliseconds before reconnecting.
